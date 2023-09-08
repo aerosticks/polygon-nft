@@ -119,6 +119,8 @@ async function main() {
     "\n",
     await chainBattles.getCharacterStats(2)
   );
+
+  console.log("TOKEN URI\n", await chainBattles.tokenURI(2));
 }
 
 main().then(() =>

@@ -58,72 +58,38 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function generateCharacter(uint256 tokenId) public returns (string memory) {
-        if (((characterStats[tokenId].level != 0))) {
-            bytes memory svg = abi.encodePacked(
-                '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
-                "<style>.base { fill: white; font-family: serif; font-size: 14px; }</style>",
-                '<rect width="100%" height="100%" fill="black" />',
-                '<text x="50%" y="20%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "ID: ",
-                characterStats[tokenId].id,
-                "</text>",
-                '<text x="50%" y="30%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Class: ",
-                characterStats[tokenId].class,
-                "</text>",
-                '<text x="50%" y="40%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Levels: ",
-                characterStats[tokenId].level,
-                "</text>",
-                '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Speed: ",
-                characterStats[tokenId].speed,
-                "</text>",
-                '<text x="50%" y="60%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Strength: ",
-                characterStats[tokenId].strength,
-                "</text>",
-                '<text x="50%" y="70%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Life: ",
-                characterStats[tokenId].life,
-                "</text>",
-                "</svg>"
-            );
+        bytes memory svg = abi.encodePacked(
+            '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
+            "<style>.base { fill: white; font-family: serif; font-size: 14px; }</style>",
+            '<rect width="100%" height="100%" fill="black" />',
+            '<text x="50%" y="20%" class="base" dominant-baseline="middle" text-anchor="middle">',
+            "ID #",
+            characterStats[tokenId].id.toString(),
+            "</text>",
+            '<text x="50%" y="30%" class="base" dominant-baseline="middle" text-anchor="middle">',
+            "Class: ",
+            characterStats[tokenId].class,
+            "</text>",
+            '<text x="50%" y="40%" class="base" dominant-baseline="middle" text-anchor="middle">',
+            "Level: ",
+            characterStats[tokenId].level.toString(),
+            "</text>",
+            '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
+            "Speed: ",
+            characterStats[tokenId].speed.toString(),
+            "</text>",
+            '<text x="50%" y="60%" class="base" dominant-baseline="middle" text-anchor="middle">',
+            "Strength: ",
+            characterStats[tokenId].strength.toString(),
+            "</text>",
+            '<text x="50%" y="70%" class="base" dominant-baseline="middle" text-anchor="middle">',
+            "Life: ",
+            characterStats[tokenId].life.toString(),
+            "</text>",
+            "</svg>"
+        );
 
-            return string(abi.encodePacked("data:image/svg+xml;base64,", Base64.encode(svg)));
-        } else {
-            bytes memory svg = abi.encodePacked(
-                '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
-                "<style>.base { fill: white; font-family: serif; font-size: 14px; }</style>",
-                '<rect width="100%" height="100%" fill="black" />',
-                '<text x="50%" y="20%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "ID: ",
-                getCharacterStats(tokenId).id,
-                "</text>",
-                '<text x="50%" y="30%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Class: ",
-                getCharacterStats(tokenId).class,
-                "</text>",
-                '<text x="50%" y="40%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Levels: ",
-                getCharacterStats(tokenId).level,
-                "</text>",
-                '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Speed: ",
-                getCharacterStats(tokenId).speed,
-                "</text>",
-                '<text x="50%" y="60%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Strength: ",
-                getCharacterStats(tokenId).strength,
-                "</text>",
-                '<text x="50%" y="70%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                "Life: ",
-                getCharacterStats(tokenId).life,
-                "</text>",
-                "</svg>"
-            );
-            return string(abi.encodePacked("data:image/svg+xml;base64,", Base64.encode(svg)));
-        }
+        return string(abi.encodePacked("data:image/svg+xml;base64,", Base64.encode(svg)));
     }
 
     function getLevels(uint256 tokenId) public view returns (string memory) {
