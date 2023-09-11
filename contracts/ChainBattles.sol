@@ -18,9 +18,10 @@ contract ChainBattles is ERC721URIStorage {
     Counters.Counter private _tokenIds;
 
     event Minted(address indexed owner, uint256 indexed tokenId);
-    event Trained(uint256 indexed tokenId, uint256 newLevel);
+    event Trained(uint256 indexed tokenId, uint256 newLevel, uint256 remainingXP);
     event Attacked(uint256 indexed attackerTokenId, uint256 indexed victimTokenId, uint256 damage);
     event Burned(uint256 indexed tokenId);
+    event XPgained(address indexed owner, uint256 xpPoints);
 
     struct Character {
         uint256 id;
@@ -36,12 +37,29 @@ contract ChainBattles is ERC721URIStorage {
 
     uint256 constant RANDOM_STATS = 100;
     uint256 constant RANDOM_CLASS = 5;
+    uint256 constant BASE_XP_LEVEL = 50;
 
     mapping(uint256 => uint256) public tokenIdToLevels;
 
     mapping(uint256 => Character) public characterStats;
 
+    mapping(address => uint256) public experiencePoints;
+
     constructor() ERC721("Chain Battles", "CBTLS") {}
+
+    function getXP() public view returns (uint256) {
+        uint256 tempXp = experiencePoints[msg.sender];
+
+        return tempXp;
+    }
+
+    function getAmountForNextLevel(uint256 tokenId) public view returns (uint256) {
+        uint256 currentLevel = characterStats[tokenId].level;
+
+        uint256 xpAmountToLevelUp = (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
+
+        return xpAmountToLevelUp;
+    }
 
     function random(uint256 number) public view returns (uint256) {
         return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number;
@@ -146,13 +164,22 @@ contract ChainBattles is ERC721URIStorage {
     function train(uint256 tokenId) public {
         require(_exists(tokenId), "Please use an existing token");
         require(ownerOf(tokenId) == msg.sender, "You must own this token to train it");
+        require(
+            (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL <= experiencePoints[msg.sender],
+            "Don't have enough XP to train next level!"
+        );
 
         // uint256 currentLevel = tokenIdToLevels[tokenId];
         // tokenIdToLevels[tokenId] = currentLevel + 1;
         uint256 currentLevel = characterStats[tokenId].level;
         characterStats[tokenId].level = currentLevel + 1;
+
+        uint256 currentXP = experiencePoints[msg.sender];
+        uint256 xpAmountToLevelUp = (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
+        experiencePoints[msg.sender] = currentXP - xpAmountToLevelUp;
+
         _setTokenURI(tokenId, getTokenURI(tokenId, msg.sender));
-        emit Trained(tokenId, characterStats[tokenId].level);
+        emit Trained(tokenId, characterStats[tokenId].level, experiencePoints[msg.sender]);
     }
 
     function attack(uint256 tokenId1, uint256 tokenId2) public {
@@ -163,6 +190,7 @@ contract ChainBattles is ERC721URIStorage {
         uint256 attackValue = getAttackValue();
         uint256 currentOpponentLife = characterStats[tokenId2].life;
         uint256 currentOpponentLevel = characterStats[tokenId2].level;
+        uint256 currentXP = experiencePoints[msg.sender];
 
         if (attackValue > currentOpponentLife) {
             if (currentOpponentLevel == 0) {
@@ -181,6 +209,9 @@ contract ChainBattles is ERC721URIStorage {
 
         _setTokenURI(tokenId2, getTokenURI(tokenId2, msg.sender));
         emit Attacked(tokenId1, tokenId2, attackValue);
+
+        experiencePoints[msg.sender] = currentXP + attackValue;
+        emit XPgained(msg.sender, experiencePoints[msg.sender]);
     }
 
     function getAttackValue() public view returns (uint256) {

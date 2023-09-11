@@ -30,7 +30,6 @@ async function main() {
   //   ];
 
   await chainBattles.connect(owner).mint();
-  //   await getCharStats(1);
   console.log(
     "Character stats for token #",
     1,
@@ -38,17 +37,15 @@ async function main() {
     await chainBattles.getCharacterStats(1)
   );
 
-  await chainBattles.connect(owner).train(1);
-  //   await getCharStats(1);
-  console.log(
-    "Character stats for token # TRAINED",
-    1,
-    "\n",
-    await chainBattles.getCharacterStats(1)
-  );
+  // await chainBattles.connect(owner).train(1);
+  // console.log(
+  //   "Character stats for token # TRAINED",
+  //   1,
+  //   "\n",
+  //   await chainBattles.getCharacterStats(1)
+  // );
 
   await chainBattles.connect(user1).mint();
-  //   await getCharStats(2);
   console.log(
     "Character stats for token #",
     2,
@@ -56,17 +53,15 @@ async function main() {
     await chainBattles.getCharacterStats(2)
   );
 
-  await chainBattles.connect(user1).train(2);
-  //   await getCharStats(2);
-  console.log(
-    "Character stats for token # TRAINED",
-    2,
-    "\n",
-    await chainBattles.getCharacterStats(2)
-  );
+  // await chainBattles.connect(user1).train(2);
+  // console.log(
+  //   "Character stats for token # TRAINED",
+  //   2,
+  //   "\n",
+  //   await chainBattles.getCharacterStats(2)
+  // );
 
   await chainBattles.connect(user2).mint();
-  //   await getCharStats(3);
   console.log(
     "Character stats for token #",
     3,
@@ -74,17 +69,15 @@ async function main() {
     await chainBattles.getCharacterStats(3)
   );
 
-  await chainBattles.connect(user2).train(3);
-  //   await getCharStats(3);
-  console.log(
-    "Character stats for token # TRAINED",
-    3,
-    "\n",
-    await chainBattles.getCharacterStats(3)
-  );
+  // await chainBattles.connect(user2).train(3);
+  // console.log(
+  //   "Character stats for token # TRAINED",
+  //   3,
+  //   "\n",
+  //   await chainBattles.getCharacterStats(3)
+  // );
 
   await chainBattles.connect(user3).mint();
-  //   await getCharStats(4);
   console.log(
     "Character stats for token #",
     4,
@@ -92,14 +85,13 @@ async function main() {
     await chainBattles.getCharacterStats(4)
   );
 
-  await chainBattles.connect(user3).train(4);
-  //   await getCharStats(4);
-  console.log(
-    "Character stats for token # TRAINED",
-    4,
-    "\n",
-    await chainBattles.getCharacterStats(4)
-  );
+  // await chainBattles.connect(user3).train(4);
+  // console.log(
+  //   "Character stats for token # TRAINED",
+  //   4,
+  //   "\n",
+  //   await chainBattles.getCharacterStats(4)
+  // );
 
   await chainBattles.connect(owner).attack(1, 2);
   console.log(
@@ -120,7 +112,28 @@ async function main() {
     await chainBattles.getCharacterStats(2)
   );
 
-  console.log("TOKEN URI\n", await chainBattles.tokenURI(2));
+  console.log("XP POINTS ", owner.address, "\n", await chainBattles.getXP());
+
+  await chainBattles.train(1);
+
+  console.log(
+    "XP FOR NEXT LEVEL on TOKEN 1 ",
+    await chainBattles.getAmountForNextLevel(1)
+  );
+  await chainBattles.train(1);
+
+  console.log(
+    "XP FOR NEXT LEVEL on TOKEN 1 ",
+    await chainBattles.getAmountForNextLevel(1)
+  );
+  await chainBattles.train(1);
+
+  console.log(
+    "XP FOR NEXT LEVEL on TOKEN 1 ",
+    await chainBattles.getAmountForNextLevel(1)
+  );
+
+  // console.log("TOKEN URI\n", await chainBattles.tokenURI(2));
 }
 
 main().then(() =>
