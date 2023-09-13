@@ -31,6 +31,8 @@ contract ChainBattles is ERC721URIStorage {
         uint256 life;
         string class;
         address owner;
+        bool alive;
+        bool initialized;
     }
 
     Character character;
@@ -47,8 +49,8 @@ contract ChainBattles is ERC721URIStorage {
 
     constructor() ERC721("Chain Battles", "CBTLS") {}
 
-    function getXP() public view returns (uint256) {
-        uint256 tempXp = experiencePoints[msg.sender];
+    function getXP(address _user) public view returns (uint256) {
+        uint256 tempXp = experiencePoints[_user];
 
         return tempXp;
     }
@@ -127,7 +129,7 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function getTokenURI(uint256 tokenId, address _owner) public returns (string memory) {
-        if (((characterStats[tokenId].level == 0))) {
+        if (((characterStats[tokenId].initialized == false))) {
             uint256[2] memory randArray = randomArray([uint256(85), uint256(80)]);
             uint256 level = 0;
             string memory charClass = getCharClass(random(RANDOM_CLASS));
@@ -135,7 +137,7 @@ contract ChainBattles is ERC721URIStorage {
             uint256 strength = randArray[1];
             uint256 life = 100;
 
-            characterStats[tokenId] = Character(tokenId, level, speed, strength, life, charClass, _owner);
+            characterStats[tokenId] = Character(tokenId, level, speed, strength, life, charClass, _owner, true, true);
         }
 
         bytes memory dataURI = abi.encodePacked(

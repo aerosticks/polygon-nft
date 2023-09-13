@@ -112,26 +112,31 @@ async function main() {
     await chainBattles.getCharacterStats(2)
   );
 
-  console.log("XP POINTS ", owner.address, "\n", await chainBattles.getXP());
-
-  await chainBattles.train(1);
-
   console.log(
-    "XP FOR NEXT LEVEL on TOKEN 1 ",
-    await chainBattles.getAmountForNextLevel(1)
+    "XP POINTS ",
+    owner.address,
+    "\n",
+    await chainBattles.getXP(owner.address)
   );
-  await chainBattles.train(1);
 
-  console.log(
-    "XP FOR NEXT LEVEL on TOKEN 1 ",
-    await chainBattles.getAmountForNextLevel(1)
-  );
-  await chainBattles.train(1);
+  // await chainBattles.train(1);
 
-  console.log(
-    "XP FOR NEXT LEVEL on TOKEN 1 ",
-    await chainBattles.getAmountForNextLevel(1)
-  );
+  // console.log(
+  //   "XP FOR NEXT LEVEL on TOKEN 1 ",
+  //   await chainBattles.getAmountForNextLevel(1)
+  // );
+  // await chainBattles.train(1);
+
+  // console.log(
+  //   "XP FOR NEXT LEVEL on TOKEN 1 ",
+  //   await chainBattles.getAmountForNextLevel(1)
+  // );
+  // await chainBattles.train(1);
+
+  // console.log(
+  //   "XP FOR NEXT LEVEL on TOKEN 1 ",
+  //   await chainBattles.getAmountForNextLevel(1)
+  // );
 
   // console.log("TOKEN URI\n", await chainBattles.tokenURI(2));
 }
