@@ -61,13 +61,13 @@ async function main() {
   //   await chainBattles.getCharacterStats(2)
   // );
 
-  await chainBattles.connect(user2).mint();
-  console.log(
-    "Character stats for token #",
-    3,
-    "\n",
-    await chainBattles.getCharacterStats(3)
-  );
+  // await chainBattles.connect(user2).mint();
+  // console.log(
+  //   "Character stats for token #",
+  //   3,
+  //   "\n",
+  //   await chainBattles.getCharacterStats(3)
+  // );
 
   // await chainBattles.connect(user2).train(3);
   // console.log(
@@ -77,13 +77,13 @@ async function main() {
   //   await chainBattles.getCharacterStats(3)
   // );
 
-  await chainBattles.connect(user3).mint();
-  console.log(
-    "Character stats for token #",
-    4,
-    "\n",
-    await chainBattles.getCharacterStats(4)
-  );
+  // await chainBattles.connect(user3).mint();
+  // console.log(
+  //   "Character stats for token #",
+  //   4,
+  //   "\n",
+  //   await chainBattles.getCharacterStats(4)
+  // );
 
   // await chainBattles.connect(user3).train(4);
   // console.log(
@@ -94,20 +94,33 @@ async function main() {
   // );
 
   await chainBattles.connect(owner).attack(1, 2);
-  console.log(
-    "Character stats for token after attack 1 token 1 -> 2",
-    "\n",
-    await chainBattles.getCharacterStats(2)
-  );
+  // console.log(
+  //   "Character stats for token after attack 1 token 1 -> 2",
+  //   "\n",
+  //   await chainBattles.getCharacterStats(2)
+  // );
   await chainBattles.connect(owner).attack(1, 2);
-  console.log(
-    "Character stats for token after attack 2 token 1 -> 2",
-    "\n",
-    await chainBattles.getCharacterStats(2)
-  );
+  // console.log(
+  //   "Character stats for token after attack 2 token 1 -> 2",
+  //   "\n",
+  //   await chainBattles.getCharacterStats(2)
+  // );
   await chainBattles.connect(owner).attack(1, 2);
+  // console.log(
+  //   "Character stats for token after attack 3 token 1 -> 2",
+  //   "\n",
+  //   await chainBattles.getCharacterStats(2)
+  // );
+  // await chainBattles.connect(owner).attack(1, 3);
+  // await chainBattles.connect(owner).attack(1, 3);
+  // await chainBattles.connect(owner).attack(1, 2);
   console.log(
-    "Character stats for token after attack 3 token 1 -> 2",
+    "Character stats for token 1 after attack 3 token 1 -> 2",
+    "\n",
+    await chainBattles.getCharacterStats(1)
+  );
+  console.log(
+    "Character stats for token 2 after attack 3 token 1 -> 2",
     "\n",
     await chainBattles.getCharacterStats(2)
   );
@@ -120,6 +133,11 @@ async function main() {
   );
 
   // await chainBattles.train(1);
+  // console.log(
+  //   "Character stats for token 1 after training",
+  //   "\n",
+  //   await chainBattles.getCharacterStats(1)
+  // );
 
   // console.log(
   //   "XP FOR NEXT LEVEL on TOKEN 1 ",
