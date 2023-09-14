@@ -2,13 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-// The ERC721URIStorage contract that will be used as a foundation of our ERC721 Smart contract
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-// The counters.sol library, will take care of handling and storing our tokenIDs
 import "@openzeppelin/contracts/utils/Counters.sol";
-// The string.sol library to implement the "toString()" function, that converts data into strings - sequences of characters
 import "@openzeppelin/contracts/utils/Strings.sol";
-// The Base64 library that, as we've seen previous, will help us handle base64 data like our on-chain SVGs
 import "@openzeppelin/contracts/utils/Base64.sol";
 
 contract ChainBattles is ERC721URIStorage {
@@ -24,6 +20,9 @@ contract ChainBattles is ERC721URIStorage {
     );
     event Burned(uint256 indexed tokenId);
     event XPgained(address indexed owner, uint256 xpPoints);
+    event Killed(address indexed owner, uint256 indexed tokenId);
+    event Revived(uint256 indexed tokenId);
+    event Healed(uint256 indexed tokenId, uint256 healAmount);
 
     struct Character {
         uint256 id;
@@ -42,8 +41,8 @@ contract ChainBattles is ERC721URIStorage {
     uint256 constant RANDOM_STATS = 100;
     uint256 constant RANDOM_CLASS = 5;
     uint256 constant BASE_XP_LEVEL = 50;
-
-    mapping(uint256 => uint256) public tokenIdToLevels;
+    uint256 constant REVIVE_COST = 100;
+    uint256 constant HEAL_COST = 65;
 
     mapping(uint256 => Character) public characterStats;
 
@@ -80,10 +79,27 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function generateCharacter(uint256 tokenId) public returns (string memory) {
+        // Define a variable to store the fill color
+        string memory fontColor;
+        string memory bgColor;
+
+        // Check the character's life status and set the fill color accordingly
+        if (characterStats[tokenId].alive) {
+            fontColor = "white"; // Set the fill color to black if the character is alive
+            bgColor = "black";
+        } else {
+            fontColor = "black"; // Set the fill color to red if the character is dead
+            bgColor = "red";
+        }
+
         bytes memory svg = abi.encodePacked(
             '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
-            "<style>.base { fill: white; font-family: serif; font-size: 14px; }</style>",
-            '<rect width="100%" height="100%" fill="black" />',
+            "<style>.base { fill: ",
+            fontColor,
+            "; font-family: serif; font-size: 14px; }</style>",
+            '<rect width="100%" height="100%" fill="',
+            bgColor,
+            '" />',
             '<text x="50%" y="20%" class="base" dominant-baseline="middle" text-anchor="middle">',
             "ID #",
             characterStats[tokenId].id.toString(),
@@ -160,25 +176,26 @@ contract ChainBattles is ERC721URIStorage {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
         _safeMint(msg.sender, newItemId);
-        tokenIdToLevels[newItemId] = 0;
         _setTokenURI(newItemId, getTokenURI(newItemId, msg.sender));
         emit Minted(msg.sender, newItemId);
     }
 
-    function train(uint256 tokenId) public {
+    function existAndOwner(uint256 tokenId) internal {
         require(_exists(tokenId), "Please use an existing token");
         require(ownerOf(tokenId) == msg.sender, "You must own this token to train it");
+    }
+
+    function train(uint256 tokenId) public {
+        existAndOwner(tokenId);
+        require(characterStats[tokenId].alive == true, "Needs to be alive to train!");
         require(
             (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL <= experiencePoints[msg.sender],
             "Don't have enough XP to train next level!"
         );
-
-        // uint256 currentLevel = tokenIdToLevels[tokenId];
-        // tokenIdToLevels[tokenId] = currentLevel + 1;
         uint256 currentLevel = characterStats[tokenId].level;
-
         uint256 currentXP = experiencePoints[msg.sender];
         uint256 xpAmountToLevelUp = (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
+
         experiencePoints[msg.sender] = currentXP - xpAmountToLevelUp;
         characterStats[tokenId].level = currentLevel + 1;
 
@@ -202,10 +219,28 @@ contract ChainBattles is ERC721URIStorage {
         return (strength * level) / speed;
     }
 
+    function updateToken(uint256 attackValue, uint256 tokenId) internal {
+        if (attackValue > characterStats[tokenId].life) {
+            if (characterStats[tokenId].level == 0) {
+                // if level 0 and life <= 0; token is marked as dead.
+                characterStats[tokenId].level = 0;
+                characterStats[tokenId].life = 0;
+                characterStats[tokenId].alive = false;
+                emit Killed(msg.sender, characterStats[tokenId].id);
+            } else {
+                // Decrease the level by 1 and adjust the life
+                characterStats[tokenId].level = characterStats[tokenId].level - 1;
+                characterStats[tokenId].life = 100 + characterStats[tokenId].life - attackValue;
+            }
+        } else {
+            // Reduce the life of the character by the attackValue
+            characterStats[tokenId].life = characterStats[tokenId].life - attackValue;
+        }
+    }
+
     function attack(uint256 tokenId1, uint256 tokenId2) public {
-        require(_exists(tokenId1), "Please use an existing token #1");
         require(_exists(tokenId2), "Please use an existing token #2");
-        require(ownerOf(tokenId1) == msg.sender, "You must own token #1");
+        existAndOwner(tokenId1);
 
         uint256 attackerDamagePotential = getAttackPotential(tokenId1);
         uint256 attackerDamagePotential2 = getAttackPotential(tokenId2);
@@ -224,52 +259,56 @@ contract ChainBattles is ERC721URIStorage {
 
         uint256 attackValue = getAttackValue(randArray[0]);
         uint256 defenseValue = getAttackValue(defenderDamagePotential);
-        uint256 currentOpponentLife = characterStats[tokenId2].life;
-        uint256 currentOpponentLevel = characterStats[tokenId2].level;
         uint256 currentXP = experiencePoints[msg.sender];
-        uint256 currentTokenLife = characterStats[tokenId1].life;
-        uint256 currentTokenLevel = characterStats[tokenId1].level;
+        uint256 enemyCurrentXP = experiencePoints[characterStats[tokenId2].owner];
 
-        if (attackValue > currentOpponentLife) {
-            if (currentOpponentLevel == 0) {
-                // Burn the token if its level is 0
-                _burn(tokenId2); // _burn is a function provided by the ERC721 contract to destroy a token
-                emit Burned(tokenId2);
-            } else {
-                // Decrease the level by 1 and adjust the life
-                characterStats[tokenId2].level = currentOpponentLevel - 1;
-                characterStats[tokenId2].life = 100 + currentOpponentLife - attackValue;
-            }
-        } else {
-            // Reduce the life of the character by the attackValue
-            characterStats[tokenId2].life = currentOpponentLife - attackValue;
-        }
-
-        if (defenseValue > currentTokenLife) {
-            if (currentTokenLevel == 0) {
-                // Burn the token if its level is 0
-                _burn(tokenId1); // _burn is a function provided by the ERC721 contract to destroy a token
-                emit Burned(tokenId1);
-            } else {
-                // Decrease the level by 1 and adjust the life
-                characterStats[tokenId1].level = currentTokenLevel - 1;
-                characterStats[tokenId1].life = 100 + currentTokenLife - defenseValue;
-            }
-        } else {
-            // Reduce the life of the character by the attackValue
-            characterStats[tokenId1].life = currentTokenLife - defenseValue;
-        }
+        updateToken(attackValue, tokenId2);
+        updateToken(defenseValue, tokenId1);
 
         _setTokenURI(tokenId1, getTokenURI(tokenId1, msg.sender));
         _setTokenURI(tokenId2, getTokenURI(tokenId2, msg.sender));
         emit Attacked(tokenId1, tokenId2, attackValue, defenseValue);
 
         experiencePoints[msg.sender] = currentXP + attackValue;
+        experiencePoints[characterStats[tokenId2].owner] = enemyCurrentXP + defenseValue;
         emit XPgained(msg.sender, experiencePoints[msg.sender]);
     }
 
     function getAttackValue(uint256 maxDamage) internal view returns (uint256) {
         uint256 attackNum = random(maxDamage);
         return attackNum;
+    }
+
+    function revive(uint256 tokenId) public {
+        existAndOwner(tokenId);
+        require(characterStats[tokenId].alive == false, "Token already alive.");
+        require(experiencePoints[msg.sender] >= REVIVE_COST, "Don't have enough XP to revive.");
+
+        uint256 currentXP = experiencePoints[msg.sender];
+        experiencePoints[msg.sender] = currentXP - REVIVE_COST;
+
+        characterStats[tokenId].life = 100;
+        characterStats[tokenId].alive = true;
+
+        _setTokenURI(tokenId, getTokenURI(tokenId, msg.sender));
+        emit Revived(tokenId);
+    }
+
+    function heal(uint256 tokenId) public {
+        existAndOwner(tokenId);
+        require(characterStats[tokenId].alive == true, "Token needs to be alive!");
+        require(characterStats[tokenId].life < 100, "Token already at full health.");
+        require(experiencePoints[msg.sender] >= HEAL_COST, "Don't have enough XP to heal.");
+
+        uint256 currentLife = characterStats[tokenId].life;
+        uint256 currentXP = experiencePoints[msg.sender];
+        experiencePoints[msg.sender] = currentXP - HEAL_COST;
+
+        characterStats[tokenId].life = 100;
+
+        uint256 healedFor = 100 - currentLife;
+
+        _setTokenURI(tokenId, getTokenURI(tokenId, msg.sender));
+        emit Healed(tokenId, healedFor);
     }
 }

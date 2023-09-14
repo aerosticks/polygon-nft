@@ -156,7 +156,7 @@ async function main() {
   //   await chainBattles.getAmountForNextLevel(1)
   // );
 
-  // console.log("TOKEN URI\n", await chainBattles.tokenURI(2));
+  console.log("TOKEN URI\n", await chainBattles.tokenURI(2));
 }
 
 main().then(() =>
