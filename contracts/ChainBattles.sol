@@ -73,14 +73,14 @@ contract ChainBattles is ERC721URIStorage {
     }
 
     function random(uint256 number) internal view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number + 1;
+        return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number;
     }
 
     function randomArray(uint256[2] memory _myArray) internal view returns (uint256[2] memory) {
         uint256[2] memory results;
 
         for (uint256 i = 0; i < _myArray.length; i++) {
-            results[i] = (uint256(keccak256(abi.encodePacked(block.timestamp, i))) % _myArray[i]) + 1;
+            results[i] = (uint256(keccak256(abi.encodePacked(block.timestamp, i))) % _myArray[i]);
         }
 
         return results;
