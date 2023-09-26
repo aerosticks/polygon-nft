@@ -50,10 +50,18 @@ contract ChainBattles is ERC721URIStorage {
 
     constructor() ERC721("Chain Battles", "CBTLS") {}
 
-    function getXP(address _user) public view returns (uint256) {
+    function getXP(address _user)
+        public
+        view
+        returns (uint256 xpAmount, uint256 healNeededAmount, uint256 reviveNeededAmount)
+    {
         uint256 tempXp = experiencePoints[_user];
 
-        return tempXp;
+        // return tempXp;
+
+        xpAmount = tempXp;
+        healNeededAmount = HEAL_COST;
+        reviveNeededAmount = REVIVE_COST;
     }
 
     function getAmountForNextLevel(uint256 tokenId) public view returns (uint256) {
@@ -209,18 +217,18 @@ contract ChainBattles is ERC721URIStorage {
         uint256 level = characterStats[tokenId].level;
 
         if (strength == 0 || level == 0) {
-            return 15;
+            return 5;
         }
 
         if (speed == 0) {
-            return 15;
+            return 5;
         }
 
         return (strength * level) / speed;
     }
 
     function updateToken(uint256 attackValue, uint256 tokenId) internal {
-        if (attackValue > characterStats[tokenId].life) {
+        if (attackValue >= characterStats[tokenId].life) {
             if (characterStats[tokenId].level == 0) {
                 // if level 0 and life <= 0; token is marked as dead.
                 characterStats[tokenId].level = 0;
