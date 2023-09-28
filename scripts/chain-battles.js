@@ -100,20 +100,9 @@ async function main() {
   //   await chainBattles.getCharacterStats(2)
   // );
   await chainBattles.connect(owner).attack(1, 2);
-  // console.log(
-  //   "Character stats for token after attack 2 token 1 -> 2",
-  //   "\n",
-  //   await chainBattles.getCharacterStats(2)
-  // );
+
   await chainBattles.connect(owner).attack(1, 2);
-  // console.log(
-  //   "Character stats for token after attack 3 token 1 -> 2",
-  //   "\n",
-  //   await chainBattles.getCharacterStats(2)
-  // );
-  // await chainBattles.connect(owner).attack(1, 3);
-  // await chainBattles.connect(owner).attack(1, 3);
-  // await chainBattles.connect(owner).attack(1, 2);
+
   console.log(
     "Character stats for token 1 after attack 3 token 1 -> 2",
     "\n",

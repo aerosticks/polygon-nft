@@ -55,48 +55,45 @@ contract ChainBattles is ERC721URIStorage {
         view
         returns (uint256 xpAmount, uint256 healNeededAmount, uint256 reviveNeededAmount)
     {
-        uint256 tempXp = experiencePoints[_user];
-
-        // return tempXp;
-
-        xpAmount = tempXp;
+        xpAmount = experiencePoints[_user];
         healNeededAmount = HEAL_COST;
         reviveNeededAmount = REVIVE_COST;
     }
 
     function getAmountForNextLevel(uint256 tokenId) public view returns (uint256) {
-        uint256 currentLevel = characterStats[tokenId].level;
-
         uint256 xpAmountToLevelUp = (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
 
         return xpAmountToLevelUp;
     }
 
     function random(uint256 number) internal view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number;
+        if (number == 0) {
+            return 0;
+        } else {
+            return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number;
+        }
     }
 
     function randomArray(uint256[2] memory _myArray) internal view returns (uint256[2] memory) {
         uint256[2] memory results;
 
         for (uint256 i = 0; i < _myArray.length; i++) {
-            results[i] = (uint256(keccak256(abi.encodePacked(block.timestamp, i))) % _myArray[i]);
+            uint256 divisor = (_myArray[i] == 0) ? 1 : _myArray[i];
+            results[i] = (uint256(keccak256(abi.encodePacked(block.timestamp, i))) % divisor);
         }
 
         return results;
     }
 
     function generateCharacter(uint256 tokenId) public returns (string memory) {
-        // Define a variable to store the fill color
         string memory fontColor;
         string memory bgColor;
 
-        // Check the character's life status and set the fill color accordingly
         if (characterStats[tokenId].alive) {
-            fontColor = "white"; // Set the fill color to black if the character is alive
+            fontColor = "white";
             bgColor = "black";
         } else {
-            fontColor = "black"; // Set the fill color to red if the character is dead
+            fontColor = "black";
             bgColor = "red";
         }
 
@@ -216,32 +213,25 @@ contract ChainBattles is ERC721URIStorage {
         uint256 speed = characterStats[tokenId].speed;
         uint256 level = characterStats[tokenId].level;
 
-        if (strength == 0 || level == 0) {
-            return 5;
+        if (strength == 0 || speed == 0) {
+            return 10;
         }
 
-        if (speed == 0) {
-            return 5;
-        }
-
-        return (strength * level) / speed;
+        return (strength * (level + 1) * 10) / speed;
     }
 
     function updateToken(uint256 attackValue, uint256 tokenId) internal {
         if (attackValue >= characterStats[tokenId].life) {
             if (characterStats[tokenId].level == 0) {
-                // if level 0 and life <= 0; token is marked as dead.
                 characterStats[tokenId].level = 0;
                 characterStats[tokenId].life = 0;
                 characterStats[tokenId].alive = false;
                 emit Killed(msg.sender, characterStats[tokenId].id);
             } else {
-                // Decrease the level by 1 and adjust the life
                 characterStats[tokenId].level = characterStats[tokenId].level - 1;
                 characterStats[tokenId].life = 100 + characterStats[tokenId].life - attackValue;
             }
         } else {
-            // Reduce the life of the character by the attackValue
             characterStats[tokenId].life = characterStats[tokenId].life - attackValue;
         }
     }
@@ -250,23 +240,30 @@ contract ChainBattles is ERC721URIStorage {
         require(_exists(tokenId2), "Please use an existing token #2");
         existAndOwner(tokenId1);
 
-        uint256 attackerDamagePotential = getAttackPotential(tokenId1);
-        uint256 attackerDamagePotential2 = getAttackPotential(tokenId2);
+        // uint256 attackerDamagePotential = getAttackPotential(tokenId1);
+        // uint256 attackerDamagePotential2 = getAttackPotential(tokenId2);
 
-        uint256[2] memory randArray = randomArray([uint256(attackerDamagePotential), uint256(attackerDamagePotential2)]);
+        // uint256[2] memory randArray = randomArray([uint256(attackerDamagePotential), uint256(attackerDamagePotential2)]);
 
-        uint256 defenderDamagePotential;
+        // uint256 defenderDamagePotential;
 
-        if (randArray[0] > randArray[1]) {
-            defenderDamagePotential = randArray[0] - randArray[1];
-        } else if (randArray[0] < randArray[1]) {
-            defenderDamagePotential = randArray[1] - randArray[0];
-        } else {
-            defenderDamagePotential = randArray[1];
-        }
+        // if (randArray[0] > randArray[1]) {
+        //     defenderDamagePotential = randArray[0] - randArray[1];
+        // } else if (randArray[0] < randArray[1]) {
+        //     defenderDamagePotential = randArray[1] - randArray[0];
+        // } else {
+        //     defenderDamagePotential = randArray[1];
+        // }
 
-        uint256 attackValue = getAttackValue(randArray[0]);
-        uint256 defenseValue = getAttackValue(defenderDamagePotential);
+        // uint256 attackValue = getAttackValue(randArray[0]);
+        // uint256 defenseValue = getAttackValue(defenderDamagePotential);
+
+        // uint256 attackValue = getAttackValue(attackerDamagePotential);
+        // uint256 defenseValue = getAttackValue(attackerDamagePotential2);
+
+        uint256 attackValue = getAttackValue(getAttackPotential(tokenId1));
+        uint256 defenseValue = getAttackValue(getAttackPotential(tokenId2));
+
         uint256 currentXP = experiencePoints[msg.sender];
         uint256 enemyCurrentXP = experiencePoints[characterStats[tokenId2].owner];
 
