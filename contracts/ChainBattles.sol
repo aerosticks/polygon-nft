@@ -7,9 +7,18 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
+import "contracts/Shared.sol";
+import "contracts/Generate.sol";
+import "contracts/Attack.sol";
+
 contract ChainBattles is ERC721URIStorage {
     using Strings for uint256;
     using Counters for Counters.Counter;
+
+    using SharedStructs for SharedStructs.Character;
+    using SharedStructs for mapping(uint256 => SharedStructs.Character);
+
+    mapping(uint256 => SharedStructs.Character) public characterStats;
 
     Counters.Counter private _tokenIds;
 
@@ -24,27 +33,10 @@ contract ChainBattles is ERC721URIStorage {
     event Revived(uint256 indexed tokenId);
     event Healed(uint256 indexed tokenId, uint256 healAmount);
 
-    struct Character {
-        uint256 id;
-        uint256 level;
-        uint256 speed;
-        uint256 strength;
-        uint256 life;
-        string class;
-        address owner;
-        bool alive;
-        bool initialized;
-    }
-
-    Character character;
-
     uint256 constant RANDOM_STATS = 100;
-    uint256 constant RANDOM_CLASS = 5;
     uint256 constant BASE_XP_LEVEL = 50;
     uint256 constant REVIVE_COST = 100;
     uint256 constant HEAL_COST = 65;
-
-    mapping(uint256 => Character) public characterStats;
 
     mapping(address => uint256) public experiencePoints;
 
@@ -66,122 +58,22 @@ contract ChainBattles is ERC721URIStorage {
         return xpAmountToLevelUp;
     }
 
-    function random(uint256 number) internal view returns (uint256) {
-        if (number == 0) {
-            return 0;
-        } else {
-            return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))) % number;
-        }
-    }
-
-    function randomArray(uint256[2] memory _myArray) internal view returns (uint256[2] memory) {
-        uint256[2] memory results;
-
-        for (uint256 i = 0; i < _myArray.length; i++) {
-            uint256 divisor = (_myArray[i] == 0) ? 1 : _myArray[i];
-            results[i] = (uint256(keccak256(abi.encodePacked(block.timestamp, i))) % divisor);
-        }
-
-        return results;
-    }
-
-    function generateCharacter(uint256 tokenId) public returns (string memory) {
-        string memory fontColor;
-        string memory bgColor;
-
-        if (characterStats[tokenId].alive) {
-            fontColor = "white";
-            bgColor = "black";
-        } else {
-            fontColor = "black";
-            bgColor = "red";
-        }
-
-        bytes memory svg = abi.encodePacked(
-            '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
-            "<style>.base { fill: ",
-            fontColor,
-            "; font-family: serif; font-size: 14px; }</style>",
-            '<rect width="100%" height="100%" fill="',
-            bgColor,
-            '" />',
-            '<text x="50%" y="20%" class="base" dominant-baseline="middle" text-anchor="middle">',
-            "ID #",
-            characterStats[tokenId].id.toString(),
-            "</text>",
-            '<text x="50%" y="30%" class="base" dominant-baseline="middle" text-anchor="middle">',
-            "Class: ",
-            characterStats[tokenId].class,
-            "</text>",
-            '<text x="50%" y="40%" class="base" dominant-baseline="middle" text-anchor="middle">',
-            "Level: ",
-            characterStats[tokenId].level.toString(),
-            "</text>",
-            '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
-            "Speed: ",
-            characterStats[tokenId].speed.toString(),
-            "</text>",
-            '<text x="50%" y="60%" class="base" dominant-baseline="middle" text-anchor="middle">',
-            "Strength: ",
-            characterStats[tokenId].strength.toString(),
-            "</text>",
-            '<text x="50%" y="70%" class="base" dominant-baseline="middle" text-anchor="middle">',
-            "Life: ",
-            characterStats[tokenId].life.toString(),
-            "</text>",
-            "</svg>"
-        );
-
-        return string(abi.encodePacked("data:image/svg+xml;base64,", Base64.encode(svg)));
-    }
-
     function getLevels(uint256 tokenId) public view returns (string memory) {
         uint256 levels = characterStats[tokenId].level;
         return levels.toString();
     }
 
-    function getCharacterStats(uint256 tokenId) public view returns (Character memory) {
-        Character memory char = characterStats[tokenId];
+    function getCharacterStats(uint256 tokenId) public view returns (SharedStructs.Character memory) {
+        SharedStructs.Character memory char = characterStats[tokenId];
         return char;
-    }
-
-    function getCharClass(uint256 index) internal pure returns (string memory) {
-        string[5] memory charClasses = ["Warrior", "Mage", "Healer", "Wizard", "Archer"];
-        require(index < 5, "Index out of bounds");
-        return charClasses[index];
-    }
-
-    function getTokenURI(uint256 tokenId, address _owner) public returns (string memory) {
-        if (((characterStats[tokenId].initialized == false))) {
-            uint256[2] memory randArray = randomArray([uint256(85), uint256(80)]);
-            uint256 level = 0;
-            string memory charClass = getCharClass(random(RANDOM_CLASS));
-            uint256 speed = randArray[0];
-            uint256 strength = randArray[1];
-            uint256 life = 100;
-
-            characterStats[tokenId] = Character(tokenId, level, speed, strength, life, charClass, _owner, true, true);
-        }
-
-        bytes memory dataURI = abi.encodePacked(
-            "{",
-            '"name": "Chain Battles #',
-            tokenId.toString(),
-            '",',
-            '"description": "Battles on chain",',
-            '"image": "',
-            generateCharacter(tokenId),
-            '"',
-            "}"
-        );
-        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
     }
 
     function mint() public {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
         _safeMint(msg.sender, newItemId);
-        _setTokenURI(newItemId, getTokenURI(newItemId, msg.sender));
+        SharedStructs.Character memory characterForToken = characterStats[newItemId];
+        _setTokenURI(newItemId, GenerateLogic.getTokenURI(characterForToken, newItemId, msg.sender));
         emit Minted(msg.sender, newItemId);
     }
 
@@ -203,85 +95,28 @@ contract ChainBattles is ERC721URIStorage {
 
         experiencePoints[msg.sender] = currentXP - xpAmountToLevelUp;
         characterStats[tokenId].level = currentLevel + 1;
+        SharedStructs.Character memory characterForToken = characterStats[tokenId];
 
-        _setTokenURI(tokenId, getTokenURI(tokenId, msg.sender));
+        _setTokenURI(tokenId, GenerateLogic.getTokenURI(characterForToken, tokenId, msg.sender));
         emit Trained(tokenId, characterStats[tokenId].level, experiencePoints[msg.sender]);
     }
 
-    function getAttackPotential(uint256 tokenId) internal view returns (uint256) {
-        uint256 strength = characterStats[tokenId].strength;
-        uint256 speed = characterStats[tokenId].speed;
-        uint256 level = characterStats[tokenId].level;
-
-        if (strength == 0 || speed == 0) {
-            return 10;
-        }
-
-        return (strength * (level + 1) * 10) / speed;
-    }
-
-    function updateToken(uint256 attackValue, uint256 tokenId) internal {
-        if (attackValue >= characterStats[tokenId].life) {
-            if (characterStats[tokenId].level == 0) {
-                characterStats[tokenId].level = 0;
-                characterStats[tokenId].life = 0;
-                characterStats[tokenId].alive = false;
-                emit Killed(msg.sender, characterStats[tokenId].id);
-            } else {
-                characterStats[tokenId].level = characterStats[tokenId].level - 1;
-                characterStats[tokenId].life = 100 + characterStats[tokenId].life - attackValue;
-            }
-        } else {
-            characterStats[tokenId].life = characterStats[tokenId].life - attackValue;
-        }
-    }
-
     function attack(uint256 tokenId1, uint256 tokenId2) public {
+        require(_exists(tokenId1), "Please use an existing token #1");
         require(_exists(tokenId2), "Please use an existing token #2");
         existAndOwner(tokenId1);
+        existAndOwner(tokenId2);
 
-        // uint256 attackerDamagePotential = getAttackPotential(tokenId1);
-        // uint256 attackerDamagePotential2 = getAttackPotential(tokenId2);
+        SharedStructs.Character memory char1 = characterStats[tokenId1];
+        SharedStructs.Character memory char2 = characterStats[tokenId2];
 
-        // uint256[2] memory randArray = randomArray([uint256(attackerDamagePotential), uint256(attackerDamagePotential2)]);
+        (uint256 attackValue, uint256 defenseValue) = ActionLogic.attack(char1, char2, experiencePoints);
 
-        // uint256 defenderDamagePotential;
+        _setTokenURI(char1.id, GenerateLogic.getTokenURI(char1, char1.id, msg.sender));
+        _setTokenURI(char2.id, GenerateLogic.getTokenURI(char2, char2.id, msg.sender));
+        emit Attacked(char1.id, char2.id, attackValue, defenseValue);
 
-        // if (randArray[0] > randArray[1]) {
-        //     defenderDamagePotential = randArray[0] - randArray[1];
-        // } else if (randArray[0] < randArray[1]) {
-        //     defenderDamagePotential = randArray[1] - randArray[0];
-        // } else {
-        //     defenderDamagePotential = randArray[1];
-        // }
-
-        // uint256 attackValue = getAttackValue(randArray[0]);
-        // uint256 defenseValue = getAttackValue(defenderDamagePotential);
-
-        // uint256 attackValue = getAttackValue(attackerDamagePotential);
-        // uint256 defenseValue = getAttackValue(attackerDamagePotential2);
-
-        uint256 attackValue = getAttackValue(getAttackPotential(tokenId1));
-        uint256 defenseValue = getAttackValue(getAttackPotential(tokenId2));
-
-        uint256 currentXP = experiencePoints[msg.sender];
-        uint256 enemyCurrentXP = experiencePoints[characterStats[tokenId2].owner];
-
-        updateToken(attackValue, tokenId2);
-        updateToken(defenseValue, tokenId1);
-
-        _setTokenURI(tokenId1, getTokenURI(tokenId1, msg.sender));
-        _setTokenURI(tokenId2, getTokenURI(tokenId2, msg.sender));
-        emit Attacked(tokenId1, tokenId2, attackValue, defenseValue);
-
-        experiencePoints[msg.sender] = currentXP + attackValue;
-        experiencePoints[characterStats[tokenId2].owner] = enemyCurrentXP + defenseValue;
         emit XPgained(msg.sender, experiencePoints[msg.sender]);
-    }
-
-    function getAttackValue(uint256 maxDamage) internal view returns (uint256) {
-        uint256 attackNum = random(maxDamage);
-        return attackNum;
     }
 
     function revive(uint256 tokenId) public {
@@ -295,7 +130,9 @@ contract ChainBattles is ERC721URIStorage {
         characterStats[tokenId].life = 100;
         characterStats[tokenId].alive = true;
 
-        _setTokenURI(tokenId, getTokenURI(tokenId, msg.sender));
+        SharedStructs.Character memory characterForToken = characterStats[tokenId];
+
+        _setTokenURI(tokenId, GenerateLogic.getTokenURI(characterForToken, tokenId, msg.sender));
         emit Revived(tokenId);
     }
 
@@ -313,7 +150,9 @@ contract ChainBattles is ERC721URIStorage {
 
         uint256 healedFor = 100 - currentLife;
 
-        _setTokenURI(tokenId, getTokenURI(tokenId, msg.sender));
+        SharedStructs.Character memory characterForToken = characterStats[tokenId];
+
+        _setTokenURI(tokenId, GenerateLogic.getTokenURI(characterForToken, tokenId, msg.sender));
         emit Healed(tokenId, healedFor);
     }
 }
