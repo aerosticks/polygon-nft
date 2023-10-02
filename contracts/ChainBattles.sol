@@ -3,37 +3,37 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "contracts/Shared.sol";
-import "contracts/Generate.sol";
-import "contracts/Attack.sol";
 
-contract ChainBattles is ERC721URIStorage {
-    using Strings for uint256;
-    using Counters for Counters.Counter;
+import "contracts/AttackCB.sol";
+import "contracts/MintCB.sol";
+import "contracts/ReviveCB.sol";
+import "contracts/TrainCB.sol";
+import "contracts/HealCB.sol";
+
+import "contracts/libraries/Generate.sol";
+
+import "contracts/interfaces/IChainBattles.sol";
+
+contract ChainBattles is ERC721URIStorage, IChainBattles, Ownable {
+    ICBAttack public attackModule;
+    ICBMint public mintModule;
+    ICBRevive public reviveModule;
+    ICBTrain public trainModule;
+    ICBHeal public healModule;
 
     using SharedStructs for SharedStructs.Character;
     using SharedStructs for mapping(uint256 => SharedStructs.Character);
 
     mapping(uint256 => SharedStructs.Character) public characterStats;
 
-    Counters.Counter private _tokenIds;
+    // event Burned(uint256 indexed tokenId);
+    // event Killed(address indexed owner, uint256 indexed tokenId);
 
-    event Minted(address indexed owner, uint256 indexed tokenId);
-    event Trained(uint256 indexed tokenId, uint256 newLevel, uint256 remainingXP);
-    event Attacked(
-        uint256 indexed attackerTokenId, uint256 indexed victimTokenId, uint256 attackDamage, uint256 defenseDamage
-    );
-    event Burned(uint256 indexed tokenId);
     event XPgained(address indexed owner, uint256 xpPoints);
-    event Killed(address indexed owner, uint256 indexed tokenId);
-    event Revived(uint256 indexed tokenId);
-    event Healed(uint256 indexed tokenId, uint256 healAmount);
 
-    uint256 constant RANDOM_STATS = 100;
     uint256 constant BASE_XP_LEVEL = 50;
     uint256 constant REVIVE_COST = 100;
     uint256 constant HEAL_COST = 65;
@@ -42,117 +42,84 @@ contract ChainBattles is ERC721URIStorage {
 
     constructor() ERC721("Chain Battles", "CBTLS") {}
 
-    function getXP(address _user)
-        public
-        view
-        returns (uint256 xpAmount, uint256 healNeededAmount, uint256 reviveNeededAmount)
-    {
-        xpAmount = experiencePoints[_user];
-        healNeededAmount = HEAL_COST;
-        reviveNeededAmount = REVIVE_COST;
+    function setModules(
+        address _attackModule,
+        address _mintModule,
+        address _reviveModule,
+        address _trainModule,
+        address _healModule
+    ) external onlyOwner {
+        attackModule = ICBAttack(_attackModule);
+        mintModule = ICBMint(_mintModule);
+        reviveModule = ICBRevive(_reviveModule);
+        trainModule = ICBTrain(_trainModule);
+        healModule = ICBHeal(_healModule);
     }
 
-    function getAmountForNextLevel(uint256 tokenId) public view returns (uint256) {
-        uint256 xpAmountToLevelUp = (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
-
-        return xpAmountToLevelUp;
-    }
-
-    function getLevels(uint256 tokenId) public view returns (string memory) {
-        uint256 levels = characterStats[tokenId].level;
-        return levels.toString();
-    }
-
-    function getCharacterStats(uint256 tokenId) public view returns (SharedStructs.Character memory) {
+    function getCharStats(uint256 tokenId) internal view returns (SharedStructs.Character memory) {
         SharedStructs.Character memory char = characterStats[tokenId];
         return char;
     }
 
-    function mint() public {
-        _tokenIds.increment();
-        uint256 newItemId = _tokenIds.current();
-        _safeMint(msg.sender, newItemId);
-        SharedStructs.Character memory characterForToken = characterStats[newItemId];
-        _setTokenURI(newItemId, GenerateLogic.getTokenURI(characterForToken, newItemId, msg.sender));
-        emit Minted(msg.sender, newItemId);
+    function getXP(uint256 tokenId)
+        public
+        view
+        returns (uint256 xpAmount, uint256 healNeededAmount, uint256 reviveNeededAmount, uint256 nextLevelXp)
+    {
+        xpAmount = experiencePoints[msg.sender];
+        healNeededAmount = HEAL_COST;
+        reviveNeededAmount = REVIVE_COST;
+        nextLevelXp = (getCharStats(tokenId).level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
+        return (xpAmount, healNeededAmount, reviveNeededAmount, nextLevelXp);
     }
 
-    function existAndOwner(uint256 tokenId) internal {
-        require(_exists(tokenId), "Please use an existing token");
-        require(ownerOf(tokenId) == msg.sender, "You must own this token to train it");
+    function getCharacterStats(uint256 tokenId) public view returns (SharedStructs.Character memory) {
+        return getCharStats(tokenId);
+    }
+
+    function mint() public {
+        mintModule.mint(msg.sender);
+    }
+
+    function verifyOwnerAndToken(uint256 tokenId) external {
+        require(_exists(tokenId), "Token n/a");
+        require(ownerOf(tokenId) == msg.sender, "Not Owner");
+    }
+
+    function mintNewToken(address owner, uint256 newId) external returns (SharedStructs.Character memory) {
+        _safeMint(owner, newId);
+        return getCharStats(newId);
+    }
+
+    function updateExperiencePoints(address player, uint256 amount, bool add) external override {
+        // require(msg.sender == address(attackModule), "Only the attack module can call this function");
+
+        if (add == true) {
+            experiencePoints[player] += amount;
+        } else {
+            experiencePoints[player] -= amount;
+        }
+    }
+
+    function setNewToken(uint256 tokenId, SharedStructs.Character memory charStats, address owner) external override {
+        _setTokenURI(tokenId, GenerateLogic.getTokenURI(charStats, tokenId, owner));
     }
 
     function train(uint256 tokenId) public {
-        existAndOwner(tokenId);
-        require(characterStats[tokenId].alive == true, "Needs to be alive to train!");
-        require(
-            (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL <= experiencePoints[msg.sender],
-            "Don't have enough XP to train next level!"
-        );
-        uint256 currentLevel = characterStats[tokenId].level;
-        uint256 currentXP = experiencePoints[msg.sender];
-        uint256 xpAmountToLevelUp = (characterStats[tokenId].level * BASE_XP_LEVEL) + BASE_XP_LEVEL;
-
-        experiencePoints[msg.sender] = currentXP - xpAmountToLevelUp;
-        characterStats[tokenId].level = currentLevel + 1;
-        SharedStructs.Character memory characterForToken = characterStats[tokenId];
-
-        _setTokenURI(tokenId, GenerateLogic.getTokenURI(characterForToken, tokenId, msg.sender));
-        emit Trained(tokenId, characterStats[tokenId].level, experiencePoints[msg.sender]);
+        trainModule.train(getCharStats(tokenId), experiencePoints[getCharStats(tokenId).owner]);
     }
 
     function attack(uint256 tokenId1, uint256 tokenId2) public {
-        require(_exists(tokenId1), "Please use an existing token #1");
-        require(_exists(tokenId2), "Please use an existing token #2");
-        existAndOwner(tokenId1);
-        existAndOwner(tokenId2);
-
-        SharedStructs.Character memory char1 = characterStats[tokenId1];
-        SharedStructs.Character memory char2 = characterStats[tokenId2];
-
-        (uint256 attackValue, uint256 defenseValue) = ActionLogic.attack(char1, char2, experiencePoints);
-
-        _setTokenURI(char1.id, GenerateLogic.getTokenURI(char1, char1.id, msg.sender));
-        _setTokenURI(char2.id, GenerateLogic.getTokenURI(char2, char2.id, msg.sender));
-        emit Attacked(char1.id, char2.id, attackValue, defenseValue);
+        attackModule.attack(getCharStats(tokenId1), getCharStats(tokenId2));
 
         emit XPgained(msg.sender, experiencePoints[msg.sender]);
     }
 
     function revive(uint256 tokenId) public {
-        existAndOwner(tokenId);
-        require(characterStats[tokenId].alive == false, "Token already alive.");
-        require(experiencePoints[msg.sender] >= REVIVE_COST, "Don't have enough XP to revive.");
-
-        uint256 currentXP = experiencePoints[msg.sender];
-        experiencePoints[msg.sender] = currentXP - REVIVE_COST;
-
-        characterStats[tokenId].life = 100;
-        characterStats[tokenId].alive = true;
-
-        SharedStructs.Character memory characterForToken = characterStats[tokenId];
-
-        _setTokenURI(tokenId, GenerateLogic.getTokenURI(characterForToken, tokenId, msg.sender));
-        emit Revived(tokenId);
+        reviveModule.revive(getCharStats(tokenId), experiencePoints[getCharStats(tokenId).owner]);
     }
 
     function heal(uint256 tokenId) public {
-        existAndOwner(tokenId);
-        require(characterStats[tokenId].alive == true, "Token needs to be alive!");
-        require(characterStats[tokenId].life < 100, "Token already at full health.");
-        require(experiencePoints[msg.sender] >= HEAL_COST, "Don't have enough XP to heal.");
-
-        uint256 currentLife = characterStats[tokenId].life;
-        uint256 currentXP = experiencePoints[msg.sender];
-        experiencePoints[msg.sender] = currentXP - HEAL_COST;
-
-        characterStats[tokenId].life = 100;
-
-        uint256 healedFor = 100 - currentLife;
-
-        SharedStructs.Character memory characterForToken = characterStats[tokenId];
-
-        _setTokenURI(tokenId, GenerateLogic.getTokenURI(characterForToken, tokenId, msg.sender));
-        emit Healed(tokenId, healedFor);
+        healModule.heal(getCharStats(tokenId), experiencePoints[getCharStats(tokenId).owner]);
     }
 }

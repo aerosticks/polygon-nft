@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-// import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "contracts/Shared.sol";
@@ -12,10 +11,7 @@ library GenerateLogic {
 
     uint256 constant RANDOM_CLASS = 5;
 
-    function generateCharacter(SharedStructs.Character memory characterStats, uint256 tokenId)
-        internal
-        returns (string memory)
-    {
+    function generateCharacter(SharedStructs.Character memory characterStats) internal pure returns (string memory) {
         string memory fontColor;
         string memory bgColor;
 
@@ -67,6 +63,7 @@ library GenerateLogic {
 
     function getTokenURI(SharedStructs.Character memory characterStats, uint256 tokenId, address _owner)
         internal
+        view
         returns (string memory)
     {
         if (((characterStats.initialized == false))) {
@@ -79,6 +76,8 @@ library GenerateLogic {
 
             characterStats =
                 SharedStructs.Character(tokenId, level, speed, strength, life, charClass, _owner, true, true);
+
+            // return characterStats;
         }
 
         bytes memory dataURI = abi.encodePacked(
@@ -88,7 +87,7 @@ library GenerateLogic {
             '",',
             '"description": "Battles on chain",',
             '"image": "',
-            generateCharacter(characterStats, tokenId),
+            generateCharacter(characterStats),
             '"',
             "}"
         );

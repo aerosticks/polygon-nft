@@ -22,6 +22,40 @@ async function main() {
   await chainBattles.waitForDeployment();
   console.log("ChainBattles deployed to:", chainBattles.target);
 
+  const CBAttack = await ethers.getContractFactory("CBAttack");
+  const cbAttack = await CBAttack.deploy(chainBattles.target);
+  await cbAttack.waitForDeployment();
+  console.log("CBAttack deployed at:", cbAttack.target);
+
+  const CBHeal = await ethers.getContractFactory("CBHeal");
+  const cbHeal = await CBHeal.deploy(chainBattles.target);
+  await cbHeal.waitForDeployment();
+  console.log("CBHeal deployed at:", cbHeal.target);
+
+  const CBMint = await ethers.getContractFactory("CBMint");
+  const cbMint = await CBMint.deploy(chainBattles.target);
+  await cbMint.waitForDeployment();
+  console.log("CBMint deployed at:", cbMint.target);
+
+  const CBRevive = await ethers.getContractFactory("CBRevive");
+  const cbRevive = await CBRevive.deploy(chainBattles.target);
+  await cbRevive.waitForDeployment();
+  console.log("CBRevive deployed at:", cbRevive.target);
+
+  const CBTrain = await ethers.getContractFactory("CBTrain");
+  const cbTrain = await CBTrain.deploy(chainBattles.target);
+  await cbRevive.waitForDeployment();
+  console.log("CBTrain deployed at:", cbTrain.target);
+
+  await chainBattles.setModules(
+    cbAttack.target,
+    cbMint.target,
+    cbRevive.target,
+    cbTrain.target,
+    cbHeal.target
+  );
+  console.log("ChainBattles updated with module addresses");
+
   //   const addresses = [
   //     owner.address,
   //     user1.address,
