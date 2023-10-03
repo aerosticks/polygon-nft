@@ -47,27 +47,27 @@ const main = async () => {
 
     const CBAttack = await ethers.getContractFactory("CBAttack");
     const cbAttack = await CBAttack.deploy(nftContract.target);
-    await cbAttack.deployed();
+    await cbAttack.waitForDeployment();
     console.log("CBAttack deployed at:", cbAttack.target);
 
     const CBHeal = await ethers.getContractFactory("CBHeal");
     const cbHeal = await CBHeal.deploy(nftContract.target);
-    await cbHeal.deployed();
+    await cbHeal.waitForDeployment();
     console.log("CBHeal deployed at:", cbHeal.target);
 
     const CBMint = await ethers.getContractFactory("CBMint");
     const cbMint = await CBMint.deploy(nftContract.target);
-    await cbMint.deployed();
+    await cbMint.waitForDeployment();
     console.log("CBMint deployed at:", cbMint.target);
 
     const CBRevive = await ethers.getContractFactory("CBRevive");
     const cbRevive = await CBRevive.deploy(nftContract.target);
-    await cbRevive.deployed();
+    await cbRevive.waitForDeployment();
     console.log("CBRevive deployed at:", cbRevive.target);
 
     const CBTrain = await ethers.getContractFactory("CBTrain");
     const cbTrain = await CBTrain.deploy(nftContract.target);
-    await cbRevive.deployed();
+    await cbRevive.waitForDeployment();
     console.log("CBTrain deployed at:", cbTrain.target);
 
     await nftContract.setModules(

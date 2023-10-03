@@ -53,7 +53,7 @@ contract CBAttack is ICBAttack {
         override
     {
         chainBattlesContract.verifyOwnerAndToken(characterStats1.id);
-        chainBattlesContract.verifyOwnerAndToken(characterStats2.id);
+        // chainBattlesContract.verifyOwnerAndToken(characterStats2.id);
 
         uint256 attackValue = getAttackValue(getAttackPotential(characterStats1));
         uint256 defenseValue = getAttackValue(getAttackPotential(characterStats2));

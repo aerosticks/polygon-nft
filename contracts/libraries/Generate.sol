@@ -64,7 +64,7 @@ library GenerateLogic {
     function getTokenURI(SharedStructs.Character memory characterStats, uint256 tokenId, address _owner)
         internal
         view
-        returns (string memory)
+        returns (string memory, SharedStructs.Character memory)
     {
         if (((characterStats.initialized == false))) {
             uint256[2] memory randArray = randomArray([uint256(85), uint256(80)]);
@@ -76,8 +76,6 @@ library GenerateLogic {
 
             characterStats =
                 SharedStructs.Character(tokenId, level, speed, strength, life, charClass, _owner, true, true);
-
-            // return characterStats;
         }
 
         bytes memory dataURI = abi.encodePacked(
@@ -91,7 +89,7 @@ library GenerateLogic {
             '"',
             "}"
         );
-        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
+        return (string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI))), characterStats);
     }
 
     function getCharClass(uint256 index) internal pure returns (string memory) {

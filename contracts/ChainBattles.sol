@@ -77,17 +77,22 @@ contract ChainBattles is ERC721URIStorage, IChainBattles, Ownable {
         return getCharStats(tokenId);
     }
 
+    function initializeCharacter(uint256 tokenId, SharedStructs.Character memory charStats) external override {
+        characterStats[tokenId] = charStats;
+    }
+
     function mint() public {
         mintModule.mint(msg.sender);
     }
 
-    function verifyOwnerAndToken(uint256 tokenId) external {
+    function verifyOwnerAndToken(uint256 tokenId) external view {
         require(_exists(tokenId), "Token n/a");
-        require(ownerOf(tokenId) == msg.sender, "Not Owner");
+        // require(ownerOf(tokenId) == msg.sender, "Not Owner");
+        require(ownerOf(tokenId) == tx.origin, "Not Owner");
     }
 
-    function mintNewToken(address owner, uint256 newId) external returns (SharedStructs.Character memory) {
-        _safeMint(owner, newId);
+    function mintNewToken(address _owner, uint256 newId) external returns (SharedStructs.Character memory) {
+        _safeMint(_owner, newId);
         return getCharStats(newId);
     }
 
@@ -101,8 +106,12 @@ contract ChainBattles is ERC721URIStorage, IChainBattles, Ownable {
         }
     }
 
-    function setNewToken(uint256 tokenId, SharedStructs.Character memory charStats, address owner) external override {
-        _setTokenURI(tokenId, GenerateLogic.getTokenURI(charStats, tokenId, owner));
+    function setNewToken(uint256 tokenId, SharedStructs.Character memory charStats, address _owner) external override {
+        (string memory uri, SharedStructs.Character memory newCharStats) =
+            GenerateLogic.getTokenURI(charStats, tokenId, _owner);
+        // _setTokenURI(tokenId, GenerateLogic.getTokenURI(charStats, tokenId, _owner));
+        _setTokenURI(tokenId, uri);
+        characterStats[tokenId] = newCharStats;
     }
 
     function train(uint256 tokenId) public {

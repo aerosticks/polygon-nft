@@ -20,13 +20,16 @@ contract CBMint is ICBMint {
 
     Counters.Counter private _tokenIds;
 
-    function mint(address owner) external override {
+    function mint(address _owner) external override {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
 
-        SharedStructs.Character memory char = chainBattlesContract.mintNewToken(owner, newItemId);
-        chainBattlesContract.setNewToken(newItemId, char, char.owner);
+        SharedStructs.Character memory char = chainBattlesContract.mintNewToken(_owner, newItemId);
 
-        emit Minted(owner, newItemId);
+        chainBattlesContract.initializeCharacter(newItemId, char);
+
+        chainBattlesContract.setNewToken(newItemId, char, _owner);
+
+        emit Minted(_owner, newItemId);
     }
 }
